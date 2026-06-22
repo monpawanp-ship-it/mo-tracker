@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บันทึกเวลาบรรจุ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;--accent:#00e5a0;--accent2:#0099ff;--warn:#ff6b35;--text:#e8eaf0;--text2:#8891b0;--red:#ff4d6d;--radius:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.header-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.header h1{font-size:17px;font-weight:700;}.header p{font-size:11px;color:var(--text2);}
+.tab-bar{margin-left:auto;display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:8px;}
+.tab-btn{padding:6px 14px;border-radius:6px;border:none;background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;}
+.tab-btn.active{background:var(--accent);color:#000;font-weight:700;}
+.main{max-width:960px;margin:0 auto;padding:20px 16px;}
+.page{display:none;}.page.active{display:block;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.card-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;}
+.form-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-end;}
+.form-group{flex:1;}
+.form-group label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;}
+.form-group input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:14px;padding:9px 11px;outline:none;transition:border .2s;}
+.form-group input:focus{border-color:var(--accent);}
+.form-group input::placeholder{color:var(--text2);font-size:12px;}
+.btn-add{padding:9px 20px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-add:active{transform:scale(.97);}
+
+/* ACTIVE CARDS */
+.active-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:16px;}
+.mo-card{background:linear-gradient(135deg,#0d2e1e,#0d2030);border:1px solid var(--accent);border-radius:var(--radius);padding:14px 16px;position:relative;}
+.mo-card-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.mo-card-mo{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:var(--accent);}
+.mo-card-emp{font-size:12px;color:var(--text2);margin-top:2px;}
+.mo-card-elapsed{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:var(--text);text-align:right;}
+.mo-card-start{font-size:11px;color:var(--text2);text-align:right;margin-top:2px;}
+.pulse{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--accent);font-weight:700;margin-bottom:6px;}
+.pulse-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.btn-stop-card{width:100%;margin-top:12px;padding:10px;background:var(--red);color:#fff;border:none;border-radius:8px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.btn-stop-card:hover{opacity:.85;}
+
+/* TABLE */
+.log-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+.log-count{font-size:12px;color:var(--text2);}
+.btn-export{padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:8px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:left;padding:9px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+tbody tr:hover{background:var(--surface2);}
+tbody td{padding:9px 10px;vertical-align:middle;}
+.mo-badge{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 7px;color:var(--accent);display:inline-block;}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;border-radius:5px;padding:2px 7px;display:inline-block;}
+.pill-g{background:rgba(0,229,160,.1);color:var(--accent);}
+.pill-o{background:rgba(255,107,53,.15);color:var(--warn);}
+.pill-x{background:var(--surface2);color:var(--text2);}
+.time-mono{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text2);}
+.btn-del{background:none;border:none;color:var(--text2);cursor:pointer;padding:3px 6px;border-radius:5px;font-size:13px;}
+.btn-del:hover{background:rgba(255,77,109,.15);color:var(--red);}
+.empty{text-align:center;padding:40px 0;color:var(--text2);}
+.empty .icon{font-size:36px;margin-bottom:10px;}
+
+/* SUMMARY */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.stat-label{font-size:11px;color:var(--text2);margin-bottom:5px;}
+.stat-value{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--accent);}
+.stat-sub{font-size:10px;color:var(--text2);margin-top:3px;}
+.mo-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:7px;flex-wrap:wrap;gap:7px;}
+.bar-wrap{width:90px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s;}
+
+/* POPUP */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;display:none;align-items:center;justify-content:center;}
+.overlay.show{display:flex;}
+.popup{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px 22px;width:340px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,.5);}
+.popup h2{font-size:17px;font-weight:700;margin-bottom:4px;}
+.popup .sub{font-size:12px;color:var(--text2);margin-bottom:18px;}
+.sumbox{background:var(--surface2);border-radius:9px;padding:12px 14px;margin-bottom:16px;}
+.sumrow{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+.sumrow:last-child{margin-bottom:0;}
+.sumrow span:last-child{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+.ot-row{display:flex;align-items:center;gap:9px;margin-bottom:18px;}
+.ot-row label{font-size:13px;font-weight:600;white-space:nowrap;}
+.ot-row input{flex:1;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:20px;padding:9px 12px;outline:none;text-align:center;}
+.ot-step{width:40px;height:40px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.ot-step:hover{background:var(--border);}
+.pop-actions{display:flex;gap:9px;}
+.btn-confirm{flex:1;padding:12px;background:var(--accent);color:#000;border:none;border-radius:9px;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
+.btn-cancel{padding:12px 14px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:9px;font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;}
+
+/* SEARCH */
+.search-bar{display:flex;gap:8px;margin-bottom:10px;}
+.search-bar input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'IBM Plex Mono',monospace;padding:7px 11px;font-size:13px;outline:none;flex:1;}
+.search-bar input:focus{border-color:var(--accent);}
+
+/* SETTINGS */
+.settings-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 11px;outline:none;margin-bottom:8px;}
+.settings-input:focus{border-color:var(--accent);}
+.btn-row-sm{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-sm{padding:9px 16px;border:none;border-radius:8px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 18px;font-size:13px;font-weight:600;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:var(--accent);color:var(--accent);}
+.toast.error{border-color:var(--red);color:var(--red);}
+@media(max-width:600px){.form-row{flex-wrap:wrap;}.tab-btn{font-size:11px;padding:5px 9px;}.active-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">📦</div>
+  <div><h1>บันทึกเวลาบรรจุ</h1><p>Production Time Tracker</p></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showPage('record',this)">บันทึก</button>
+    <button class="tab-btn" onclick="showPage('history',this)">ประวัติ</button>
+    <button class="tab-btn" onclick="showPage('summary',this)">สรุป</button>
+    <button class="tab-btn" onclick="showPage('settings',this)">⚙️</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- RECORD PAGE -->
+  <div class="page active" id="page-record">
+
+    <!-- FORM เพิ่ม MO ใหม่ -->
+    <div class="card">
+      <div class="card-title">➕ เพิ่ม MO</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label>เลข MO *</label>
+          <input type="text" id="inp-mo" placeholder="เช่น MO-001" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="form-group">
+          <label>วันที่ *</label>
+          <input type="date" id="inp-date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>ชื่อพนักงาน</label>
+          <input type="text" id="inp-emp" placeholder="ไม่บังคับ">
+        </div>
+        <div class="form-group">
+          <label>หมายเหตุ</label>
+          <input type="text" id="inp-note" placeholder="ไม่บังคับ">
+        </div>
+        <button class="btn-add" onclick="addSession()">▶ เริ่ม</button>
+      </div>
+    </div>
+
+    <!-- MO ที่กำลังวิ่งอยู่ -->
+    <div id="active-section" style="display:none">
+      <div class="card-title" style="color:var(--accent);font-size:13px;margin-bottom:10px">
+        🟢 กำลังทำงาน — <span id="active-count">0</span> MO
+      </div>
+      <div class="active-grid" id="active-grid"></div>
+    </div>
+
+    <!-- บันทึกวันนี้ -->
+    <div class="card">
+      <div class="log-header">
+        <div>
+          <div class="card-title" style="margin-bottom:0">บันทึกวันนี้</div>
+          <div class="log-count" id="today-count">0 รายการ</div>
+        </div>
+        <button class="btn-export" onclick="exportCSV('today')">⬇ Export วันนี้</button>
+      </div>
+      <div id="today-table"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="card">
+      <div class="log-header">
+        <div>
+          <div class="card-title" style="margin-bottom:0">ประวัติทั้งหมด</div>
+          <div class="log-count" id="all-count">0 รายการ</div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn-export" onclick="exportCSV('all')" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2)">⬇ Export ทั้งหมด</button>
+          <button class="btn-export" onclick="clearAll()" style="background:rgba(255,77,109,.15);border:1px solid var(--red);color:var(--red)">🗑 ล้าง</button>
+        </div>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="search-mo" placeholder="🔍 ค้นหา MO..." oninput="renderHistory()">
+        <input type="date" id="filter-date" oninput="renderHistory()">
+      </div>
+      <div id="history-table"></div>
+    </div>
+  </div>
+
+  <!-- SUMMARY PAGE -->
+  <div class="page" id="page-summary">
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="card">
+      <div class="card-title">⏱ สรุปแยกตาม MO</div>
+      <div id="mo-list"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="card">
+      <div class="card-title">⚙️ เชื่อม Google Sheets</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.8">
+        ทำครั้งเดียว ทุกเครื่องจะเห็นข้อมูลเดียวกันค่ะ<br>
+        1. Google Sheet → <b style="color:var(--text)">Extensions → Apps Script</b><br>
+        2. วางโค้ดจากไฟล์ <b style="color:var(--accent)">google-apps-script.js</b> → Save<br>
+        3. <b style="color:var(--text)">Deploy → New deployment → Web app → Anyone → Deploy</b><br>
+        4. Copy URL มาวางด้านล่างค่ะ
+      </p>
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:6px">Apps Script Web App URL</label>
+      <input type="text" id="settings-url" class="settings-input" placeholder="https://script.google.com/macros/s/.../exec">
+      <div id="url-status" style="font-size:12px;color:var(--text2);margin-bottom:12px"></div>
+      <div class="btn-row-sm">
+        <button class="btn-sm" onclick="saveURL()" style="background:var(--accent);color:#000">บันทึก URL</button>
+        <button class="btn-sm" onclick="testConnection()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">🔌 ทดสอบ</button>
+        <button class="btn-sm" onclick="loadFromSheets()" style="background:var(--accent2);color:#fff">↻ โหลดจาก Sheets</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- OT POPUP -->
+<div class="overlay" id="overlay">
+  <div class="popup">
+    <h2>จบงาน — กรอก OT</h2>
+    <div class="sub" id="popup-mo-label">MO: —</div>
+    <div class="sumbox">
+      <div class="sumrow"><span>เริ่ม</span><span id="pop-start">—</span></div>
+      <div class="sumrow"><span>จบ</span><span id="pop-end">—</span></div>
+      <div class="sumrow"><span>เวลาทำงาน (หักพักแล้ว)</span><span id="pop-net">—</span></div>
+      <div class="sumrow"><span>หักพักเที่ยง</span><span id="pop-lunch">—</span></div>
+    </div>
+    <div class="ot-row">
+      <label>🌙 OT (ชม.)</label>
+      <button class="ot-step" onclick="adj(-0.5)">−</button>
+      <input type="number" id="ot-val" value="0" min="0" step="0.5">
+      <button class="ot-step" onclick="adj(0.5)">+</button>
+    </div>
+    <div class="pop-actions">
+      <button class="btn-cancel" onclick="closePopup()">ยกเลิก</button>
+      <button class="btn-confirm" onclick="confirmStop()">✓ บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let records  = JSON.parse(localStorage.getItem('mo_rec') ||'[]');
+let sessions = JSON.parse(localStorage.getItem('mo_sess')||'[]'); // array ของ session ที่กำลังวิ่ง
+let sheetURL = localStorage.getItem('mo_sheet_url')||'';
+let pendingId = null; // session id ที่กำลังจะจบ
+let tickers  = {}; // { sessionId: intervalId }
+
+// ── INIT ──
+window.onload = () => {
+  document.getElementById('inp-date').value = today();
+  if (sheetURL) document.getElementById('settings-url').value = sheetURL;
+  renderAll();
+  renderActiveSessions();
+  // resume tickers สำหรับ session ที่ค้างอยู่
+  sessions.forEach(s => startTicker(s.id));
+};
+
+function today(){ return new Date().toISOString().slice(0,10); }
+function saveRec(){ localStorage.setItem('mo_rec',  JSON.stringify(records)); }
+function saveSess(){ localStorage.setItem('mo_sess', JSON.stringify(sessions)); }
+
+// ── ADD SESSION ──
+function addSession() {
+  const mo   = document.getElementById('inp-mo').value.trim();
+  const date = document.getElementById('inp-date').value;
+  const emp  = document.getElementById('inp-emp').value.trim();
+  const note = document.getElementById('inp-note').value.trim();
+  if (!mo)   { toast('กรุณากรอกเลข MO ค่ะ','error'); return; }
+  if (!date) { toast('กรุณาเลือกวันที่ค่ะ','error'); return; }
+
+  // ตรวจ MO ซ้ำที่กำลังวิ่งอยู่
+  if (sessions.find(s => s.mo === mo)) {
+    toast('MO '+mo+' กำลังวิ่งอยู่แล้วค่ะ','error'); return;
+  }
+
+  const sess = { id: Date.now(), mo, date, emp, note, start: new Date().toISOString() };
+  sessions.push(sess);
+  saveSess();
+  startTicker(sess.id);
+  renderActiveSessions();
+
+  // clear แค่ MO และ emp ให้กรอกใหม่ได้เร็ว
+  document.getElementById('inp-mo').value = '';
+  document.getElementById('inp-emp').value = '';
+  document.getElementById('inp-note').value = '';
+  toast('เริ่มบันทึก '+mo,'success');
+}
+
+// ── TICKER ──
+function startTicker(id) {
+  if (tickers[id]) clearInterval(tickers[id]);
+  tickers[id] = setInterval(() => {
+    const el = document.getElementById('elapsed-'+id);
+    if (!el) return;
+    const s = sessions.find(s=>s.id===id);
+    if (!s) { clearInterval(tickers[id]); return; }
+    el.textContent = durFmt(Date.now() - new Date(s.start).getTime());
+  }, 1000);
+}
+
+// ── RENDER ACTIVE SESSIONS ──
+function renderActiveSessions() {
+  const sec  = document.getElementById('active-section');
+  const grid = document.getElementById('active-grid');
+  document.getElementById('active-count').textContent = sessions.length;
+  if (sessions.length === 0) { sec.style.display='none'; grid.innerHTML=''; return; }
+  sec.style.display = 'block';
+  grid.innerHTML = sessions.map(s => `
+    <div class="mo-card" id="card-${s.id}">
+      <div class="pulse"><div class="pulse-dot"></div> กำลังทำงาน</div>
+      <div class="mo-card-top">
+        <div>
+          <div class="mo-card-mo">${s.mo}</div>
+          <div class="mo-card-emp">${s.emp || '—'}</div>
+        </div>
+        <div>
+          <div class="mo-card-elapsed" id="elapsed-${s.id}">00:00:00</div>
+          <div class="mo-card-start">เริ่ม ${timeFmt(new Date(s.start))}</div>
+        </div>
+      </div>
+      <button class="btn-stop-card" onclick="openPopup(${s.id})">■ จบงาน</button>
+    </div>`).join('');
+}
+
+// ── POPUP ──
+function openPopup(id) {
+  const s = sessions.find(s=>s.id===id);
+  if (!s) return;
+  pendingId = id;
+  const start  = new Date(s.start);
+  const end    = new Date();
+  const calc   = calcWorkTime(start, end);
+  const isMulti = start.toDateString() !== end.toDateString();
+  document.getElementById('popup-mo-label').textContent = 'MO: '+s.mo+(s.emp?' · '+s.emp:'');
+  document.getElementById('pop-start').textContent  = (isMulti?dateFmt(s.date)+' ':'')+timeFmt(start);
+  document.getElementById('pop-end').textContent    = (isMulti?dateFmt(end.toISOString().slice(0,10))+' ':'')+timeFmt(end);
+  document.getElementById('pop-net').textContent    = calc.normalH+' ชม.'+(isMulti?' (ข้ามวัน)':'');
+  document.getElementById('pop-lunch').textContent  = calc.lunchMs>0 ? r2(calc.lunchMs/3600000)+' ชม.' : '—';
+  document.getElementById('ot-val').value = '0';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closePopup() {
+  document.getElementById('overlay').classList.remove('show');
+  pendingId = null;
+}
+
+function adj(d) {
+  const el = document.getElementById('ot-val');
+  el.value = Math.max(0, Math.round((parseFloat(el.value||0)+d)*10)/10);
+}
+
+function confirmStop() {
+  const s = sessions.find(s=>s.id===pendingId);
+  if (!s) return;
+  const start  = new Date(s.start);
+  const end    = new Date();
+  const calc   = calcWorkTime(start, end);
+  const otH    = r2(Math.max(0, parseFloat(document.getElementById('ot-val').value)||0));
+  const normH  = calc.normalH;          // ชม.ปกติ = จาก calcWorkTime โดยตรง
+  const totH   = r2(normH + otH);       // รวม = ปกติ + OT ที่กรอก
+  const rec    = {
+    id: Date.now(), mo: s.mo, date: s.date, emp: s.emp||'', note: s.note||'',
+    startTime: s.start, endTime: end.toISOString(),
+    totalHours: totH, normalHours: normH, otHours: otH,
+    lunchHours: r2(calc.lunchMs/3600000),
+  };
+  records.unshift(rec);
+  saveRec();
+
+  // ลบ session ออก
+  clearInterval(tickers[pendingId]);
+  delete tickers[pendingId];
+  sessions = sessions.filter(s=>s.id!==pendingId);
+  saveSess();
+  pendingId = null;
+
+  document.getElementById('overlay').classList.remove('show');
+  renderActiveSessions();
+  renderAll();
+  toast('บันทึก '+rec.mo+' แล้วค่ะ! ปกติ '+normH+' ชม.'+(otH>0?' + OT '+otH+' ชม.':''),'success');
+  pushToSheets(rec);
+}
+
+// ── CALC ──
+const W_START=8,W_END=17,L_START=12,L_END=13;
+function calcWorkTime(start, end) {
+  let normalMs=0, otMs=0, lunchMs=0;
+  const sd=new Date(start.getFullYear(),start.getMonth(),start.getDate());
+  const ed=new Date(end.getFullYear(),  end.getMonth(),  end.getDate());
+  for (let d=new Date(sd); d<=ed; d.setDate(d.getDate()+1)) {
+    const base=d.getTime(), H=h=>base+h*3600000;
+    const isFirst=d.toDateString()===sd.toDateString();
+    const isLast =d.toDateString()===ed.toDateString();
+    const pS=isFirst?Math.max(start.getTime(),H(W_START)):H(W_START);
+    const pE=isLast ?end.getTime():H(W_END);
+    if (pS>=pE) continue;
+    const clip=(a,b)=>Math.max(0,Math.min(pE,b)-Math.max(pS,a));
+    const dl=clip(H(L_START),H(L_END)); lunchMs+=dl;
+    normalMs+=Math.max(0,clip(H(W_START),H(W_END))-dl);
+    otMs+=clip(H(W_END),pE+86400000);
+  }
+  return { normalH:r2(normalMs/3600000), otH:r2(otMs/3600000), lunchMs };
+}
+
+// ── RENDER ──
+function renderAll() { renderToday(); renderHistory(); renderSummary(); }
+
+function renderToday() {
+  const recs=records.filter(r=>r.date===today());
+  document.getElementById('today-count').textContent=recs.length+' รายการ';
+  document.getElementById('today-table').innerHTML=recs.length?tbl(recs):empty();
+}
+
+function renderHistory() {
+  const q=(document.getElementById('search-mo').value||'').toUpperCase();
+  const d=document.getElementById('filter-date').value;
+  let recs=records;
+  if(q) recs=recs.filter(r=>r.mo.includes(q));
+  if(d) recs=recs.filter(r=>r.date===d);
+  document.getElementById('all-count').textContent=recs.length+' รายการ';
+  document.getElementById('history-table').innerHTML=recs.length?tbl(recs):empty('📭','ไม่พบรายการค่ะ');
+}
+
+function tbl(recs){
+  return `<table><thead><tr>
+    <th>MO</th><th>วันที่</th><th>เริ่ม</th><th>จบ</th>
+    <th>ปกติ(ชม.)</th><th>OT(ชม.)</th><th>รวม(ชม.)</th><th>พนักงาน</th><th></th>
+  </tr></thead><tbody>${recs.map(r=>`
+    <tr>
+      <td><span class="mo-badge">${r.mo}</span></td>
+      <td class="time-mono">${dateFmt(r.date)}</td>
+      <td class="time-mono">${timeFmt(new Date(r.startTime))}</td>
+      <td class="time-mono">${timeFmt(new Date(r.endTime))}${r.endTime.slice(0,10)!==r.startTime.slice(0,10)?'<span style="font-size:10px;color:var(--warn);margin-left:4px">+วัน</span>':''}</td>
+      <td><span class="pill pill-g">${r.normalHours}</span></td>
+      <td>${r.otHours>0?`<span class="pill pill-o">+${r.otHours}</span>`:'<span class="pill pill-x">—</span>'}</td>
+      <td><span class="pill ${r.otHours>0?'pill-o':'pill-g'}">${r.totalHours}</span></td>
+      <td class="time-mono">${r.emp||'—'}</td>
+      <td><button class="btn-del" onclick="del(${r.id})">🗑</button></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function renderSummary(){
+  const tot=records.length;
+  const totH=records.reduce((s,r)=>s+r.totalHours,0);
+  const totOT=records.reduce((s,r)=>s+r.otHours,0);
+  const totN=records.reduce((s,r)=>s+r.normalHours,0);
+  document.getElementById('stat-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">รายการทั้งหมด</div><div class="stat-value">${tot}</div><div class="stat-sub">รายการ</div></div>
+    <div class="stat-card"><div class="stat-label">ชม. ปกติรวม</div><div class="stat-value">${r2(totN)}</div><div class="stat-sub">ชั่วโมง</div></div>
+    <div class="stat-card"><div class="stat-label">OT รวม</div><div class="stat-value" style="color:${totOT>0?'var(--warn)':'var(--accent)'}">${r2(totOT)}</div><div class="stat-sub">ชั่วโมง</div></div>
+    <div class="stat-card"><div class="stat-label">รวมทั้งหมด</div><div class="stat-value">${r2(totH)}</div><div class="stat-sub">ชั่วโมง</div></div>`;
+  const map={};
+  records.forEach(r=>{if(!map[r.mo])map[r.mo]={n:0,ot:0};map[r.mo].n+=r.normalHours;map[r.mo].ot+=r.otHours;});
+  const list=Object.entries(map).sort((a,b)=>(b[1].n+b[1].ot)-(a[1].n+a[1].ot));
+  const maxH=list.length?list[0][1].n+list[0][1].ot:1;
+  document.getElementById('mo-list').innerHTML=list.length
+    ?list.map(([mo,d],i)=>`<div class="mo-row">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="color:var(--text2);font-size:11px;width:16px">${i+1}</span>
+          <span class="mo-badge">${mo}</span>
+          <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round((d.n+d.ot)/maxH*100)}%;background:${d.ot>0?'var(--warn)':'var(--accent)'}"></div></div>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+          <span class="pill pill-g">ปกติ ${r2(d.n)} ชม.</span>
+          ${d.ot>0?`<span class="pill pill-o">OT +${r2(d.ot)} ชม.</span>`:''}
+          <span style="font-size:11px;color:var(--text2)">รวม ${r2(d.n+d.ot)} ชม.</span>
+        </div></div>`).join('')
+    :empty('📊','ยังไม่มีข้อมูลค่ะ');
+}
+
+// ── ACTIONS ──
+function del(id){ if(!confirm('ลบรายการนี้?'))return; records=records.filter(r=>r.id!==id); saveRec(); renderAll(); toast('ลบแล้วค่ะ','success'); }
+function clearAll(){ if(!confirm('ล้างข้อมูลทั้งหมด?'))return; records=[]; saveRec(); renderAll(); toast('ล้างแล้วค่ะ','success'); }
+
+function exportCSV(scope){
+  const recs=scope==='all'?records:records.filter(r=>r.date===today());
+  if(!recs.length){toast('ไม่มีข้อมูลค่ะ','error');return;}
+  const hdr='MO,วันที่,เวลาเริ่ม,เวลาจบ,ปกติ(ชม.),OT(ชม.),รวม(ชม.),หักพัก(ชม.),พนักงาน,หมายเหตุ';
+  const rows=recs.map(r=>[r.mo,r.date,timeFmt(new Date(r.startTime)),timeFmt(new Date(r.endTime)),r.normalHours,r.otHours,r.totalHours,r.lunchHours,r.emp,r.note].join(','));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+[hdr,...rows].join('\n')],{type:'text/csv;charset=utf-8'}));
+  a.download=`MO_${scope==='all'?'All':today()}.csv`; a.click();
+  toast('Export สำเร็จค่ะ ✓','success');
+}
+
+// ── SHEETS ──
+function saveURL(){
+  const u=document.getElementById('settings-url').value.trim();
+  if(!u){toast('กรุณาใส่ URL ค่ะ','error');return;}
+  sheetURL=u; localStorage.setItem('mo_sheet_url',u);
+  document.getElementById('url-status').textContent='✓ บันทึก URL แล้วค่ะ';
+  document.getElementById('url-status').style.color='var(--accent)';
+  toast('บันทึก URL สำเร็จค่ะ','success');
+}
+async function testConnection(){
+  if(!sheetURL){toast('ยังไม่มี URL ค่ะ','error');return;}
+  document.getElementById('url-status').textContent='⏳ กำลังทดสอบ...';
+  try{
+    await fetch(sheetURL,{mode:'no-cors'});
+    document.getElementById('url-status').textContent='✓ URL ใช้ได้ค่ะ! (ลอง โหลดจาก Sheets เพื่อยืนยัน)';
+    document.getElementById('url-status').style.color='var(--accent)';
+    toast('URL ใช้ได้ค่ะ ✓','success');
+  }catch(e){
+    document.getElementById('url-status').textContent='✕ เชื่อมต่อไม่ได้: '+e.message;
+    document.getElementById('url-status').style.color='var(--red)';
+    toast('เชื่อมต่อไม่ได้ค่ะ','error');
+  }
+}
+async function pushToSheets(rec){
+  if(!sheetURL)return;
+  try{ await fetch(sheetURL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'add',...rec})}); }
+  catch(e){ toast('บันทึกลง Sheets ไม่สำเร็จ (ข้อมูลอยู่ในเครื่องแล้วค่ะ)','error'); }
+}
+function loadFromSheets(){
+  if(!sheetURL){toast('ยังไม่มี URL ค่ะ','error');return;}
+  toast('กำลังโหลด...','success');
+  // ใช้ JSONP เพื่อข้าม CORS จากไฟล์ local
+  const cbName='_moCallback_'+Date.now();
+  window[cbName]=function(json){
+    delete window[cbName];
+    document.getElementById('jsonp-script')?.remove();
+    if(!json.success){toast('โหลดไม่สำเร็จ: '+(json.error||'unknown'),'error');return;}
+    const existing=new Set(records.map(r=>r.mo+'|'+r.date+'|'+r.startTime));
+    const newRecs=(json.records||[]).filter(r=>!existing.has(r.mo+'|'+r.date+'|'+r.startTime));
+    records=[...records,...newRecs].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
+    saveRec(); renderAll();
+    toast('โหลดสำเร็จ! ได้ข้อมูลใหม่ '+newRecs.length+' รายการค่ะ','success');
+  };
+  const s=document.createElement('script');
+  s.id='jsonp-script';
+  s.src=sheetURL+'?callback='+cbName;
+  s.onerror=()=>{ delete window[cbName]; toast('โหลดไม่สำเร็จ: ตรวจสอบ URL ค่ะ','error'); };
+  document.body.appendChild(s);
+}
+
+// ── PAGES ──
+function showPage(n,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active'); btn.classList.add('active');
+  if(n==='summary')renderSummary();
+  if(n==='history')renderHistory();
+}
+
+// ── TOAST ──
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=(type==='success'?'✓ ':'✕ ')+msg;
+  t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── UTILS ──
+function timeFmt(d){ return d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function dateFmt(s){ const[y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+function durFmt(ms){ const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60; return [h,m,sc].map(v=>String(v).padStart(2,'0')).join(':'); }
+function r2(v){ return Math.round(v*100)/100; }
+function empty(icon='🕐',msg='ยังไม่มีรายการค่ะ'){ return `<div class="empty"><div class="icon">${icon}</div><p>${msg}</p></div>`; }
+</script>
+</body>
+</html>
