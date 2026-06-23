@@ -523,10 +523,21 @@ async function testConnection(){
     toast('เชื่อมต่อไม่ได้ค่ะ','error');
   }
 }
-async function pushToSheets(rec){
+function pushToSheets(rec){
   if(!sheetURL)return;
-  try{ await fetch(sheetURL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'add',...rec})}); }
-  catch(e){ toast('บันทึกลง Sheets ไม่สำเร็จ (ข้อมูลอยู่ในเครื่องแล้วค่ะ)','error'); }
+  // ส่งข้อมูลผ่าน GET + JSONP เพื่อข้าม CORS
+  const cbName='_moPush_'+Date.now();
+  const params=new URLSearchParams({action:'add',callback:cbName,...rec});
+  window[cbName]=function(res){
+    delete window[cbName];
+    document.getElementById('push-script-'+rec.id)?.remove();
+    if(!res.success) toast('บันทึกลง Sheets ไม่สำเร็จ: '+res.error,'error');
+  };
+  const s=document.createElement('script');
+  s.id='push-script-'+rec.id;
+  s.src=sheetURL+'?'+params.toString();
+  s.onerror=()=>{ delete window[cbName]; toast('บันทึกลง Sheets ไม่สำเร็จ','error'); };
+  document.body.appendChild(s);
 }
 function loadFromSheets(){
   if(!sheetURL){toast('ยังไม่มี URL ค่ะ','error');return;}
